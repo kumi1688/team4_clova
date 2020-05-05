@@ -48,10 +48,9 @@ const doIntentJob = (intent, slots, cekResponse) => {
     return new Promise(async function(resolve, reject){
         try{
             let resultMessage = '';
-            let data, result, id;
             switch (intent) {
                 case 'turnOnHue': {
-                    if(slots.number){
+                    if(!slots.number){
                         cekResponse.appendSpeechText('조명을 켭니다');
                         const data = {on: true};
                         const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
@@ -61,15 +60,15 @@ const doIntentJob = (intent, slots, cekResponse) => {
                         cekResponse.appendSpeechText(`${slots.number.value} 조명을 켭니다`);
                         
                         const index = slots.number.value.split('').findIndex(element => element === '번');
-                        id = slots.number.value.split('').slice(0, index).join('');
-                        data = {on: true};
-                        result = await requestData(`clova/req/hue/changeStatus/${id}`, JSON.stringify(data));
+                        const id = slots.number.value.split('').slice(0, index).join('');
+                        const data = {on: true};
+                        const result = await requestData(`clova/req/hue/changeStatus/${id}`, JSON.stringify(data));
                         cekResponse.appendSpeechText(`${slots.number.value} 조명을 켰습니다`);
                         break;
                     }
                 }
                 case 'turnOffHue':{
-                    if(slots.number){
+                    if(!slots.number){
                         cekResponse.appendSpeechText('조명을 끕니다');
                         const data = {on: true};
                         const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
@@ -79,9 +78,9 @@ const doIntentJob = (intent, slots, cekResponse) => {
                         cekResponse.appendSpeechText(`${slots.number.value} 조명을 끕니다`);
                         
                         const index = slots.number.value.split('').findIndex(element => element === '번');
-                        id = slots.number.value.split('').slice(0, index).join('');
-                        data = {on: false};
-                        result = await requestData(`clova/req/hue/changeStatus/${id}`, JSON.stringify(data));
+                        const id = slots.number.value.split('').slice(0, index).join('');
+                        const data = {on: false};
+                        const result = await requestData(`clova/req/hue/changeStatus/${id}`, JSON.stringify(data));
                         cekResponse.appendSpeechText(`${slots.number.value} 조명을 껐습니다`);
                         break;
                     }
@@ -146,5 +145,5 @@ const doIntentJob = (intent, slots, cekResponse) => {
 }
 
 module.exports = {
-    changeBulbState, getWeatherData, getBulbState, doIntentJob, client
+    doIntentJob, client
 }
