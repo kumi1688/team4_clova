@@ -16,31 +16,6 @@ class Directive {
   }
 }
 
-// function resultText(bulbState) {
-//   if(bulbState === 'on'){
-//       return '조명이 켜졌습니다'
-//   }
-//   return '조명이 꺼졌습니다'
-// }
-
-function throwDice(diceCount) {
-  const results = []
-  let midText = ''
-  let resultText = ''
-  let sum = 0
-  console.log(`throw ${diceCount} times`)
-  for (let i = 0; i < diceCount; i++) {
-    const rand = Math.floor(Math.random() * 6) + 1
-    console.log(`${i + 1} time: ${rand}`)
-    results.push(rand)
-    sum += rand
-    midText += `${rand}, `
-  }
-
-  midText = midText.replace(/, $/, '')
-  return {midText, sum, diceCount}
-}
-
 class CEKRequest {
   constructor (httpReq) {
     this.request = httpReq.body.request

@@ -1,7 +1,36 @@
-const RabbitmqWrapper = require('./rabbitmq.js')
-const amqp = require('amqplib/callback_api');
+const mqtt = require("mqtt");
+const options = {
+  host: "13.125.207.178",
+  port: 1883,
+  protocol: "mqtt",
+};
+const client = mqtt.connect(options);
+client.on("connect", () => {
+    console.log("[sys] mqtt 연결됨");
+  });
+  client.on("disconnect", () => {
+    console.log("[sys] mqtt 연결 끊김");
+  });
 
-const url = 'amqp://ksh:1234@3.34.5.103';
+  function requestData(pubTopic, pubMessage) {
+    return new Promise((resolve, reject) => {
+      try {
+        client.publish(pubTopic, pubMessage, {}, () => {
+          client.on("message", (subTopic, subMessage) => {
+            if (
+              pubTopic.split("/").splice(1).join("") ===
+              subTopic.split("/").splice(1).join("")
+            ) {
+              // console.log(JSON.parse(subMessage));
+              resolve(JSON.parse(subMessage));
+            }
+          });
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
 
 const changeBulbState = async (value) => {
     // console.log(value);
@@ -27,24 +56,8 @@ const changeBulbState = async (value) => {
     
 };
 
-const getBulbState = async () => {
-    return new Promise(async function(resolve, reject){
-        try{
-            let queueName = 'clova/req/hue/state';
-            let rq = new RabbitmqWrapper(url, queueName);
-            await rq.sendMessage('');
-    
-            queueName = 'clova/res/hue/state';
-            rq = new RabbitmqWrapper(url, queueName);
-            const result = await rq.recvMessage('json');
-            // console.log('result: ', result);
-            resolve(result);
-            // return result;
-        }catch(e){
-            // console.log(e);
-            reject(e);
-        }        
-    })
+async function getHueStatus(){
+    client.publish('req/hue/status')
 }
 
 const getSpecificWeatherData = async (type) => {
@@ -90,18 +103,20 @@ const doIntentJob = (intent, cekResponse) => {
             switch (intent) {
                 case 'turnOnHue':
                     cekResponse.appendSpeechText('조명을 켭니다');
-                    changeBulbState('on');
+                    const data = {on: true};
+                    const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
                     cekResponse.appendSpeechText('조명을 켰습니다');
                     break;
                 case 'turnOffHue':
                     cekResponse.appendSpeechText('조명을 끕니다');
-                    changeBulbState('off');
+                    const data = {on: false};
+                    const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
                     cekResponse.appendSpeechText('조명을 껐습니다');
                     break;
-                case 'checkHue':
+                case 'checkStatusHue':
                   cekResponse.appendSpeechText('조명을 확인합니다');
-                  const bulbState = await getBulbState();
-                  resultMessage = bulbState.on ? '현재 조명은 켜졌습니다' : '현재 조명은 꺼졌습니다';
+                  const result = await requestData('clova/req/hue/status')
+                  resultMessage = result[0].on ? '현재 조명은 켜졌습니다' : '현재 조명은 꺼졌습니다';
                   cekResponse.appendSpeechText(resultMessage);
                   break;
                 case 'checkTemperature': 
@@ -158,5 +173,5 @@ const doIntentJob = (intent, cekResponse) => {
 }
 
 module.exports = {
-    changeBulbState, getWeatherData, getBulbState, doIntentJob
+    changeBulbState, getWeatherData, getBulbState, doIntentJob, client
 }
