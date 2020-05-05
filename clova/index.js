@@ -1,7 +1,7 @@
 const uuid = require('uuid').v4
 const _ = require('lodash')
 const { DOMAIN } = require('../config');
-const {changeBulbState, getBulbState, doIntentJob} = require('./function.js');
+const {changeBulbState, getBulbState, doIntentJob, client} = require('./function.js');
 const axios = require('axios');
 
 
@@ -49,7 +49,7 @@ class CEKRequest {
     const intent = this.request.intent.name
     const slots = this.request.intent.slots
     
-    await doIntentJob(intent, cekResponse);
+    await doIntentJob(intent, slots, cekResponse);
       if (this.session.new == false) {
         cekResponse.setMultiturn()
       }  

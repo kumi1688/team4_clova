@@ -29,8 +29,8 @@ subscribeList.forEach(topic=>{
         client.publish(pubTopic, pubMessage, {}, () => {
           client.on("message", (subTopic, subMessage) => {
             if (
-              pubTopic.split("/").splice(1).join("") ===
-              subTopic.split("/").splice(1).join("")
+              pubTopic.split("/").splice(2).join("") ===
+              subTopic.split("/").splice(2).join("")
             ) {
               // console.log(JSON.parse(subMessage));
               resolve(JSON.parse(subMessage));
@@ -43,87 +43,49 @@ subscribeList.forEach(topic=>{
     });
   }
 
-const changeBulbState = async (value) => {
-    // console.log(value);
-    try {
-        // const on = await getBulbState();
-        // console.log(on);
-        let queueName = 'req/hue/light';
-        const rq = new RabbitmqWrapper(url, queueName);
-        
-        await rq.sendMessage(value === 'on' ? 'on' : 'off');
-        
-        // return on.on;
-        // return new Promise(function(resolve, reject){
-        //     try{
-        //         resolve(on.on);
-        //     }catch(e){
-        //         reject(e);
-        //     }
-        // })
-    } catch (e) {
-        console.error(e);
-    }
+const doIntentJob = (intent, slots, cekResponse) => {
     
-};
-
-async function getHueStatus(){
-    client.publish('req/hue/status')
-}
-
-const getSpecificWeatherData = async (type) => {
-    const dataType = new Map([
-        ['temperature', 'T3H'],
-        ['sky', 'SKY'],
-        ['humidity', 'REH'],
-        ['rain', 'PTY'],
-        ['rainProbability', 'POP'],
-        ['windDirection', 'VEC'],
-        ['windSpeed', 'WSD']
-        ]);
-    try{
-        const weatherData = await getWeatherData();
-        const result = weatherData.filter(element=>element['category'] === type);
-        console.log(result[0]);
-        return result[0];
-    }catch(e){
-        console.log(e);
-    }   
-}
-
-
-const getWeatherData = async () => {
-    try{
-        let queueName = 'req/weather/info/general';
-        let rq = new RabbitmqWrapper(url, queueName);
-        await rq.sendMessage('');
-
-        queueName = 'res/weather/info/general';
-        rq = new RabbitmqWrapper(url, queueName);
-        const result = await rq.recvMessage('json');
-        return result;
-    }catch(e){
-        console.log(e);
-    }
-}
-
-const doIntentJob = (intent, cekResponse) => {
     return new Promise(async function(resolve, reject){
         try{
             let resultMessage = '';
+            let data, result, id;
             switch (intent) {
-                case 'turnOnHue':
-                    cekResponse.appendSpeechText('조명을 켭니다');
-                    const data = {on: true};
-                    const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
-                    cekResponse.appendSpeechText('조명을 켰습니다');
-                    break;
-                case 'turnOffHue':
-                    cekResponse.appendSpeechText('조명을 끕니다');
-                    const data = {on: false};
-                    const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
-                    cekResponse.appendSpeechText('조명을 껐습니다');
-                    break;
+                case 'turnOnHue': {
+                    if(slots.number){
+                        cekResponse.appendSpeechText('조명을 켭니다');
+                        const data = {on: true};
+                        const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
+                        cekResponse.appendSpeechText('조명을 켰습니다');
+                        break;
+                    } else {
+                        cekResponse.appendSpeechText(`${slots.number.value} 조명을 켭니다`);
+                        
+                        const index = slots.number.value.split('').findIndex(element => element === '번');
+                        id = slots.number.value.split('').slice(0, index).join('');
+                        data = {on: true};
+                        result = await requestData(`clova/req/hue/changeStatus/${id}`, JSON.stringify(data));
+                        cekResponse.appendSpeechText(`${slots.number.value} 조명을 켰습니다`);
+                        break;
+                    }
+                }
+                case 'turnOffHue':{
+                    if(slots.number){
+                        cekResponse.appendSpeechText('조명을 끕니다');
+                        const data = {on: true};
+                        const result = await requestData('clova/req/hue/changeStatus/9', JSON.stringify(data));
+                        cekResponse.appendSpeechText('조명을 껐습니다');
+                        break;
+                    } else {
+                        cekResponse.appendSpeechText(`${slots.number.value} 조명을 끕니다`);
+                        
+                        const index = slots.number.value.split('').findIndex(element => element === '번');
+                        id = slots.number.value.split('').slice(0, index).join('');
+                        data = {on: false};
+                        result = await requestData(`clova/req/hue/changeStatus/${id}`, JSON.stringify(data));
+                        cekResponse.appendSpeechText(`${slots.number.value} 조명을 껐습니다`);
+                        break;
+                    }
+                }
                 case 'checkStatusHue':
                   cekResponse.appendSpeechText('조명을 확인합니다');
                   const result = await requestData('clova/req/hue/status')
