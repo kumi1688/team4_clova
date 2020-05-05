@@ -4,13 +4,24 @@ const options = {
   port: 1883,
   protocol: "mqtt",
 };
+
 const client = mqtt.connect(options);
+
 client.on("connect", () => {
     console.log("[sys] mqtt 연결됨");
   });
   client.on("disconnect", () => {
     console.log("[sys] mqtt 연결 끊김");
   });
+
+  const subscribeList = [
+    'clova/res/hue/changeStatus/+',
+    'clova/res/hue/status',
+]
+
+subscribeList.forEach(topic=>{
+  client.subscribe(topic)  ;
+})
 
   function requestData(pubTopic, pubMessage) {
     return new Promise((resolve, reject) => {
