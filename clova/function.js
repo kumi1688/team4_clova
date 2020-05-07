@@ -17,6 +17,9 @@ client.on("connect", () => {
   const subscribeList = [
     'clova/res/hue/changeStatus/+',
     'clova/res/hue/status',
+    'clova/res/room',
+    'clova/res/hueAssignInfo',
+    'clova/res/changeHueRoom'
 ]
 
 subscribeList.forEach(topic=>{
@@ -85,54 +88,42 @@ const doIntentJob = (intent, slots, cekResponse) => {
                         break;
                     }
                 }
-                case 'checkStatusHue':
-                  cekResponse.appendSpeechText('조명을 확인합니다');
-                  const result = await requestData('clova/req/hue/status')
-                  resultMessage = result[0].on ? '현재 조명은 켜졌습니다' : '현재 조명은 꺼졌습니다';
-                  cekResponse.appendSpeechText(resultMessage);
-                  break;
-                case 'checkTemperature': 
-                    cekResponse.appendSpeechText('온도를 확인합니다');
-                    const temperatureResult = await getSpecificWeatherData('T3H');
-                    cekResponse.appendSpeechText(`온도는 ${temperatureResult.fcstValue}도 입니다`);
+                case 'checkRoom': {
+                  cekResponse.appendSpeechText('방을 확인합니다');
+                  const result = await requestData('clova/req/room');
+                  console.log(result);
+                  cekResponse.appendSpeechText('현재 방은 ' + result.join(', ') + '입니다');
+                  break; 
+              }
+                case 'checkHue': {
+                  if(slots.room){
+                    cekResponse.appendSpeechText(`${slots.room.value}에 배치된 전구를 확인합니다`);
+                    const result = await requestData('clova/req/hueAssignInfo', JSON.stringify(slots.room));
+                    if(result.length === 0 ) cekResponse.appendSpeechText(`현재 ${slots.room.value}에 배치된 전구는 없습니다`);
+                    else cekResponse.appendSpeechText(`현재 ${slots.room.value}에 배치된 전구는 ${result.join('번,')}번 입니다`);
                     break;
-                case 'checkSky': 
-                    cekResponse.appendSpeechText('하늘 상태를 확인합니다');
-                    const skyResult = await getSpecificWeatherData('SKY'); 
-                    switch(skyResult.fcstValue){
-                        case '1': resultMessage = '하늘 상태는 맑습니다'; break;
-                        case '3': resultMessage = '하늘 상태는 구름이 많습니다'; break;
-                        case '4': resultMessage = '하늘 상태는 흐립니다'; break;
-                    }
-                    cekResponse.appendSpeechText(resultMessage);
+                  } else {
+                    cekResponse.appendSpeechText('방을 인식할 수 없습니다');
                     break;
-                case 'checkHumidity':
-                    cekResponse.appendSpeechText('습도를 확인합니다');
-                    const humidityResult = await getSpecificWeatherData('REH'); 
-                    resultMessage = `현재 습도는 ${humidityResult.fcstValue}도 입니다`
-                    cekResponse.appendSpeechText(resultMessage);
+                  }
+                }
+                case 'changeHueRoom': {
+                  // 거실에 있는 전구 켜 줘
+                  console.log(slots);
+                  if(slots.room){
+                    if(slots.turnOn) cekResponse.appendSpeechText(`${slots.room.value}에 있는 전구를 켭니다`);
+                    else cekResponse.appendSpeechText(`${slots.room.value}에 있는 전구를 끕니다`);
+                    
+                    const query = {room: slots.room, on: slots.turnOn ? true : false}
+                    const result = await requestData('clova/req/changeHueRoom', JSON.stringify(query));
+                    if(result.result === 'success') cekResponse.appendSpeechText(`${slots.room.value}에 있는 전구를 ${slots.turnOn ? '켭니다':'끕니다'}`);
                     break;
-                case 'checkRain':
-                    cekResponse.appendSpeechText('강수량을 확인합니다');
-                    const rainResult = await getSpecificWeatherData('PTY'); 
-                    const rainProbaility = await getSpecificWeatherData('POP');
-                    resultMessage = `현재 강수량은 ${rainResult.fcstValue}입니다`
-                    cekResponse.appendSpeechText(resultMessage);
+                  } else {
+                    cekResponse.appendSpeechText('방을 인식할 수 없습니다');
                     break;
-                case 'checkWind':
-                    cekResponse.appendSpeechText('바람을 확인합니다');
-                    const westOrEast = await getSpecificWeatherData('UUU').fcstValue; 
-                    const northOrSouth = await getSpecificWeatherData('VVV').fcstValue; 
-                    const windSpeed = await getSpecificWeatherData('WSD'); 
+                  }
+                }
 
-                    let currentWindDirection = westOrEast < 0 ? '서풍' : '동풍';
-                    currentWindDirection += ', ';
-                    currentWindDirection += northOrSouth < 0 ? '남풍' : '북풍';
-
-                    resultMessage = `현재 풍속은 초속 ${windSpeed.fcstValue} 미터 입니다 `
-                    resultMessage += `현재 풍향은 ${currentWindDirection} 입니다`
-                    cekResponse.appendSpeechText(resultMessage);
-                    break;
                 case 'Clova.GuideIntent':
                 default:
                   cekResponse.setSimpleSpeechText("다시 말해주세요")
