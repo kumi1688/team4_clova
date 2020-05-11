@@ -1,12 +1,12 @@
 const uuid = require('uuid').v4
 const _ = require('lodash')
 const { DOMAIN } = require('../config');
-const {changeBulbState, getBulbState, doIntentJob, client} = require('./function.js');
+const { changeBulbState, getBulbState, doIntentJob, client } = require('./function.js');
 const axios = require('axios');
 
 
 class Directive {
-  constructor({namespace, name, payload}) {
+  constructor({ namespace, name, payload }) {
     this.header = {
       messageId: uuid(),
       namespace: namespace,
@@ -17,7 +17,7 @@ class Directive {
 }
 
 class CEKRequest {
-  constructor (httpReq) {
+  constructor(httpReq) {
     this.request = httpReq.body.request
     this.context = httpReq.body.context
     this.session = httpReq.body.session
@@ -43,28 +43,27 @@ class CEKRequest {
     })
   }
 
+  // 전달받은 intent를 가지고 응답을 결정하는 부분
   async intentRequest(cekResponse) {
     console.log('intentRequest')
-    // console.dir(this.request)
-    const intent = this.request.intent.name
-    const slots = this.request.intent.slots
-    
-    await doIntentJob(intent, slots, cekResponse);
-      if (this.session.new == false) {
-        cekResponse.setMultiturn()
-      }  
+    const intent = this.request.intent.name // 전달받은 intent
+    const slots = this.request.intent.slots // 전달 받은 slots
+
+    await doIntentJob(intent, slots, cekResponse); // intent, slot 을 넘겨주고 응답을 결정함 
+    if (this.session.new == false) {
+      cekResponse.setMultiturn()
+    }
   }
 
   sessionEndedRequest(cekResponse) {
     console.log('sessionEndedRequest')
-    // cekResponse.setSimpleSpeechText('주사위 놀이 익스텐션을 종료합니다.')
     cekREsponse.setSimpleSpeechText('음성 제어를 종료합니다');
     cekResponse.clearMultiturn()
   }
 }
 
 class CEKResponse {
-  constructor () {
+  constructor() {
     console.log('CEKResponse constructor')
     this.response = {
       directives: [],
@@ -90,9 +89,9 @@ class CEKResponse {
     this.response.outputSpeech = {
       type: 'SimpleSpeech',
       values: {
-          type: 'PlainText',
-          lang: 'ko',
-          value: outputText,
+        type: 'PlainText',
+        lang: 'ko',
+        value: outputText,
       },
     }
   }
@@ -103,7 +102,7 @@ class CEKResponse {
       outputSpeech.type = 'SpeechList'
       outputSpeech.values = []
     }
-    if (typeof(outputText) == 'string') {
+    if (typeof (outputText) == 'string') {
       outputSpeech.values.push({
         type: 'PlainText',
         lang: 'ko',
@@ -118,7 +117,7 @@ class CEKResponse {
 const clovaReq = async function (httpReq, httpRes, next) {
   cekResponse = new CEKResponse()
   cekRequest = new CEKRequest(httpReq)
-  await cekRequest.do(cekResponse);  
+  await cekRequest.do(cekResponse);
   console.log(`CEKResponse: ${JSON.stringify(cekResponse)}`)
   return httpRes.send(cekResponse)
 };
